@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Boleiro Manager</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>
+:root{--bg:#EEF1E8;--card:#fff;--ink:#14261A;--mute:#5d6f61;--pitch:#1F6B3A;--deep:#0E3B22;--line:#d5dccd;--gold:#E8B923;--red:#C8372D;--on:#fff;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:calc(64px + env(safe-area-inset-bottom,0px));color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0B1A11;--card:#12281A;--ink:#E7EEE2;--mute:#93a897;--pitch:#3FA866;--deep:#06120A;--line:#244230;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0B1A11;--card:#12281A;--ink:#E7EEE2;--mute:#93a897;--pitch:#3FA866;--deep:#06120A;--line:#244230;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:500 16px/1.4 Barlow,system-ui,sans-serif}
+h1,h2,h3{font-family:"Barlow Condensed","Arial Narrow",sans-serif;margin:0;letter-spacing:.01em}
+header{background:var(--deep);color:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+header b{font:700 22px "Barlow Condensed","Arial Narrow",sans-serif}
+header span{font-size:13px;opacity:.85;text-align:right}
+main{padding:14px;max-width:560px;margin:0 auto}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:12px}
+.vs{display:flex;align-items:center;justify-content:space-between;gap:8px;font:700 24px "Barlow Condensed","Arial Narrow",sans-serif}
+.vs small{display:block;font:500 13px Barlow,sans-serif;color:var(--mute)}
+.score{font-size:44px;color:var(--pitch)}
+button{font:600 16px Barlow,sans-serif;border:0;border-radius:8px;padding:13px 16px;background:var(--pitch);color:#fff;width:100%;cursor:pointer}
+button.sm{width:auto;padding:7px 12px;font-size:14px}
+button.alt{background:var(--red)}
+button:disabled{opacity:.4}
+button:focus-visible,nav a:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th{font-weight:600;color:var(--mute);text-align:right;font-size:13px}
+th:nth-child(2),td:nth-child(2){text-align:left}
+td,th{padding:7px 4px;border-bottom:1px solid var(--line);text-align:right}
+tr.me td{background:color-mix(in srgb,var(--gold) 28%,transparent);font-weight:600}
+.ev{padding:5px 0;border-bottom:1px solid var(--line);font-size:15px}
+.ev i{font-style:normal;font-weight:700;color:var(--pitch);margin-right:8px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)}
+.pos{display:inline-block;width:30px;font-weight:700;color:var(--pitch)}
+.st{display:inline-block;min-width:34px;text-align:center;padding:2px 6px;border-radius:6px;background:var(--deep);color:#fff;font-weight:600;font-size:14px}
+.dim{color:var(--mute);font-size:14px}
+.tm{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--card);color:var(--ink);border:1px solid var(--line);margin-bottom:8px}
+.dot{width:26px;height:26px;border-radius:50%;flex:none}
+nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--deep);padding-bottom:env(safe-area-inset-bottom,0px)}
+nav a{flex:1;text-align:center;padding:16px 4px;color:#cfe0d3;font-weight:600;text-decoration:none}
+nav a.on{color:#fff;box-shadow:inset 0 3px var(--gold)}
+</style>
+</head>
+<body>
+<header><b id="hn">Boleiro Manager</b><span id="hs"></span></header>
+<main id="app"></main>
+<nav id="nav" hidden></nav>
+<script>
+const N1=["Adriano","Bruno","Caio","Diego","Elton","Fabio","Gil","Hugo","Igor","Jonas","Kaue","Léo","Marcos","Nando","Otávio","Paulo","Renan","Samuel","Tiago","Vitor"],N2=["Almeida","Barros","Cardoso","Duarte","Esteves","Fontes","Guedes","Henrique","Ibarra","Lacerda","Macedo","Nogueira","Oliveira","Prado","Queiroz","Ramos","Seixas","Tavares","Uchoa","Vidal"];
+const TM=[["Estrela do Sul","#C8372D",74],["Ferroviária Central","#14261A",72],["Serra Verde","#2E8B57",70],["Porto Real","#2457A6",68],["Tigres do Vale","#E8B923",66],["Operário União","#7A3E9D",64],["Atlético Planalto","#555555",62],["Sporting Litoral","#0FA3B1",60]];
+const R=(a,b)=>Math.floor(Math.random()*(b-a+1))+a,pick=a=>a[R(0,a.length-1)];
+const price=p=>Math.round(p.s**3/1000);
+let S=null,tab="jogo",B=null,ED=null,IO=false;
+const $=id=>document.getElementById(id);
+function save(){try{localStorage.setItem("boleiro",JSON.stringify(S))}catch(e){}}
+function load(){try{const v=localStorage.getItem("boleiro");if(v)S=JSON.parse(v)}catch(e){}}
+const cl=s=>String(s).replace(/[<>&"]/g,"").slice(0,30);
+function baseDefault(){return TM.map(t=>({name:t[0],color:t[1],players:squad(t[2])}))}
+function saveB(){try{localStorage.setItem("boleiro_base",JSON.stringify(B))}catch(e){}}
+function loadB(){try{const v=localStorage.getItem("boleiro_base");if(v)B=JSON.parse(v)}catch(e){}if(!B){B=baseDefault();saveB()}}
+function reset(){S=null;try{localStorage.removeItem("boleiro")}catch(e){}render()}
+function okT(t){const c=p=>t.players.filter(x=>x.pos===p).length;return c("G")>=1&&c("D")>=4&&c("M")>=3&&c("A")>=3}
+function imp(){try{const d=JSON.parse($("io").value);if(!Array.isArray(d)||d.length!==8)throw 0;B=d.map(t=>({name:cl(t.name),color:/^#[0-9a-f]{6}$/i.test(t.color)?t.color:"#555555",players:t.players.map(p=>({n:cl(p.n),pos:["G","D","M","A"].includes(p.pos)?p.pos:"M",s:Math.max(40,Math.min(99,+p.s||40))}))}));saveB();IO=false;render()}catch(e){alert("Texto inválido. São necessários 8 times com jogadores.")}}
+function editorHTML(){
+if(IO)return`<h2>Importar / exportar</h2><p class="dim">Copie o texto para guardar seus times, ou cole outro e toque em Importar.</p><textarea id="io" rows="10" style="width:100%;font:13px monospace">${JSON.stringify(B)}</textarea><div style="height:10px"></div><button onclick="imp()">Importar</button><div style="height:8px"></div><button class="alt" onclick="IO=false;render()">Voltar</button>`;
+if(ED!==null){const t=B[ED];return`<h2>Editar time</h2><div class="card"><label class="dim">Nome</label><input value="${t.name}" onchange="B[ED].name=cl(this.value);saveB()" style="width:100%;font:inherit;padding:8px"><div style="height:8px"></div><label class="dim">Cor</label> <input type="color" value="${t.color}" onchange="B[ED].color=this.value;saveB()"></div><div class="card"><p class="dim" style="margin-top:0">Mínimo para jogar: 1 goleiro, 4 defensores, 3 meias e 3 atacantes.</p>${t.players.map((p,i)=>`<div class="row"><input value="${p.n}" onchange="B[ED].players[${i}].n=cl(this.value);saveB()" style="flex:1;min-width:0;font:inherit;padding:6px"><select onchange="B[ED].players[${i}].pos=this.value;saveB()">${["G","D","M","A"].map(x=>`<option ${x===p.pos?"selected":""}>${x}</option>`).join("")}</select><input type="number" min="40" max="99" value="${p.s}" onchange="B[ED].players[${i}].s=Math.max(40,Math.min(99,+this.value||40));saveB()" style="width:58px;font:inherit;padding:6px"><button class="sm alt" aria-label="Remover jogador" onclick="B[ED].players.splice(${i},1);saveB();render()">✕</button></div>`).join("")}<div style="height:10px"></div><button onclick="B[ED].players.push(mkP('M',65));saveB();render()">Adicionar jogador</button></div><button onclick="ED=null;render()">Concluir</button>`}
+return`<h2 style="margin-bottom:4px">Escolha seu clube</h2><p class="dim" style="margin-top:0">Oito times, 14 rodadas. Toque em Editar para mudar nomes, cores e jogadores.</p>`+B.map((t,i)=>{const ok=okT(t);return`<div style="display:flex;gap:8px;margin-bottom:8px"><button class="tm" style="margin:0" onclick="start(${i})" ${ok?"":"disabled"}><span class="dot" style="background:${t.color}"></span><span style="flex:1"><b>${t.name}</b><br><span class="dim">${ok?"Força do time: "+Math.round(avg(lineup(t))):"Elenco incompleto"}</span></span></button><button class="sm" style="flex:none" onclick="ED=${i};render()">Editar</button></div>`}).join("")+`<div style="display:flex;gap:8px;margin-top:14px"><button class="sm" onclick="IO=true;render()">Importar / exportar</button><button class="sm alt" onclick="if(confirm('Restaurar os times originais?')){B=baseDefault();saveB();render()}">Restaurar padrão</button></div>`}
+function mkP(pos,lv){return{n:pick(N1)+" "+pick(N2),pos,s:Math.max(40,Math.min(92,lv+R(-9,9)))}}
+function squad(lv){const o=[];[["G",2],["D",6],["M",6],["A",5]].forEach(([p,c])=>{for(let i=0;i<c;i++)o.push(mkP(p,lv))});return o}
+function top(t,pos,n){return t.players.filter(p=>p.pos===pos).sort((a,b)=>b.s-a.s).slice(0,n)}
+const avg=a=>a.reduce((x,p)=>x+p.s,0)/(a.length||1);
+function lineup(t){return[...top(t,"G",1),...top(t,"D",4),...top(t,"M",3),...top(t,"A",3)]}
+function pw(t){const g=top(t,"G",1),d=top(t,"D",4),m=top(t,"M",3),a=top(t,"A",3);return{atk:avg(a)*.6+avg(m)*.4,def:avg(d)*.6+avg(g)*.4}}
+function poi(l){let k=0,p=1,e=Math.exp(-l);let L=e;const u=Math.random();let c=L;while(u>c&&k<9){k++;L*=l/k;c+=L}return k}
+function fixtures(){const ids=[0,1,2,3,4,5,6,7],r=[];for(let i=0;i<7;i++){const x=[];for(let j=0;j<4;j++)x.push([ids[j],ids[7-j]]);r.push(i%2?x.map(p=>[p[1],p[0]]):x);ids.splice(1,0,ids.pop())}return r.concat(r.map(x=>x.map(p=>[p[1],p[0]])))}
+function newSeason(){S.round=0;S.fix=fixtures();S.tab=S.teams.map(()=>({p:0,j:0,v:0,e:0,d:0,gp:0,gc:0}));S.last=null;S.res=[];mkMarket();save()}
+function mkMarket(){S.market=[];for(let i=0;i<10;i++)S.market.push(mkP(pick(["G","D","D","M","M","A","A"]),pick([60,66,72,78])))}
+function start(i){S={me:i,cash:4000,teams:JSON.parse(JSON.stringify(B))};tab="jogo";newSeason();render()}
+function sim(h,a){const H=pw(S.teams[h]),A=pw(S.teams[a]);return[poi(1.3*Math.exp((H.atk+3-A.def)/22)),poi(1.1*Math.exp((A.atk-H.def-3)/22))]}
+function scorer(t){const pl=[...top(t,"A",3),...top(t,"A",3),...top(t,"M",3),...top(t,"D",4)];return pick(pl).n}
+function upd(h,a,gh,ga){const H=S.tab[h],A=S.tab[a];H.j++;A.j++;H.gp+=gh;H.gc+=ga;A.gp+=ga;A.gc+=gh;if(gh>ga){H.v++;A.d++;H.p+=3}else if(gh<ga){A.v++;H.d++;A.p+=3}else{H.e++;A.e++;H.p++;A.p++}}
+function play(){if(S.round>=14)return;S.res=[];S.last=null;S.fix[S.round].forEach(([h,a])=>{const[gh,ga]=sim(h,a);upd(h,a,gh,ga);if(h===S.me||a===S.me){const ev=[];for(let i=0;i<gh;i++)ev.push({m:R(2,90),t:h,w:scorer(S.teams[h])});for(let i=0;i<ga;i++)ev.push({m:R(2,90),t:a,w:scorer(S.teams[a])});ev.sort((x,y)=>x.m-y.m);S.last={h,a,gh,ga,ev};if(h===S.me)S.cash+=150}else S.res.push({h,a,gh,ga})});S.round++;mkMarket();save();render()}
+function order(){return S.teams.map((t,i)=>({i,...S.tab[i],sg:S.tab[i].gp-S.tab[i].gc})).sort((a,b)=>b.p-a.p||b.sg-a.sg||b.gp-a.gp)}
+function buy(i){const p=S.market[i],c=price(p),me=S.teams[S.me];if(S.cash<c||me.players.length>=24)return;S.cash-=c;me.players.push(p);S.market.splice(i,1);save();render()}
+function sell(i){const me=S.teams[S.me],p=me.players[i];if(me.players.length<=16)return;S.cash+=Math.round(price(p)*.7);me.players.splice(i,1);save();render()}
+const PN={G:"Goleiro",D:"Zagueiros e laterais",M:"Meio-campo",A:"Ataque"};
+function render(){
+const nav=$("nav"),app=$("app");
+if(!S){nav.hidden=true;$("hn").textContent="Boleiro Manager";$("hs").textContent="";
+app.innerHTML=editorHTML();return}
+nav.hidden=false;const me=S.teams[S.me];$("hn").textContent=me.name;$("hs").innerHTML="Caixa R$ "+S.cash.toLocaleString("pt-BR")+" mil<br>Rodada "+Math.min(S.round+1,14)+" de 14";
+nav.innerHTML=[["jogo","Jogo"],["tabela","Tabela"],["elenco","Elenco"],["mercado","Mercado"]].map(([k,l])=>`<a href="#${k}" class="${tab===k?"on":""}">${l}</a>`).join("");
+const nm=i=>S.teams[i].name;let h="";
+if(tab==="jogo"){
+if(S.round>=14){const o=order();h=`<div class="card"><h2>Fim da temporada</h2><p>${o[0].i===S.me?"Seu time é campeão! 🏆":"Campeão: "+nm(o[0].i)+". Você terminou em "+(o.findIndex(x=>x.i===S.me)+1)+"º lugar."}</p><button onclick="newSeason();render()">Nova temporada</button></div>`}
+else{const f=S.fix[S.round].find(p=>p[0]===S.me||p[1]===S.me);h=`<div class="card"><div class="dim">Próximo jogo${f[0]===S.me?" · em casa (+R$ 150 mil de bilheteria)":" · fora de casa"}</div><div class="vs"><span>${nm(f[0])}</span><span>x</span><span style="text-align:right">${nm(f[1])}</span></div><div style="height:12px"></div><button onclick="play()">Jogar rodada ${S.round+1}</button></div>`}
+if(S.last){const L=S.last;h+=`<div class="card"><div class="vs"><span>${nm(L.h)}</span><span class="score">${L.gh} x ${L.ga}</span><span style="text-align:right">${nm(L.a)}</span></div>${L.ev.map(e=>`<div class="ev"><i>${e.m}’</i>Gol! ${e.w} (${nm(e.t)})</div>`).join("")||'<div class="dim">Sem gols.</div>'}</div>`}
+if(S.res.length)h+=`<div class="card"><h3>Outros jogos</h3>${S.res.map(r=>`<div class="row"><span>${nm(r.h)}</span><b>${r.gh} x ${r.ga}</b><span>${nm(r.a)}</span></div>`).join("")}</div>`}
+if(tab==="tabela"){h=`<div class="card"><table><tr><th>#</th><th>Time</th><th>P</th><th>J</th><th>V</th><th>SG</th></tr>${order().map((x,k)=>`<tr class="${x.i===S.me?"me":""}"><td>${k+1}</td><td>${nm(x.i)}</td><td>${x.p}</td><td>${x.j}</td><td>${x.v}</td><td>${x.sg}</td></tr>`).join("")}</table></div>`}
+if(tab==="elenco"){const L=lineup(me);h=`<p class="dim">Titulares em 4-3-3, escolhidos pelos melhores de cada posição.</p>`+["G","D","M","A"].map(p=>`<div class="card"><h3>${PN[p]}</h3>${me.players.map((x,i)=>({x,i})).filter(o=>o.x.pos===p).sort((a,b)=>b.x.s-a.x.s).map(o=>`<div class="row"><span><span class="pos">${p}</span>${o.x.n}${L.includes(o.x)?"":' <span class="dim">(reserva)</span>'}</span><span><span class="st">${o.x.s}</span> <button class="sm alt" onclick="sell(${o.i})" ${me.players.length<=16?"disabled":""}>Vender R$ ${Math.round(price(o.x)*.7)} mil</button></span></div>`).join("")}</div>`).join("")}
+if(tab==="mercado"){h=`<p class="dim">Os jogadores mudam a cada rodada. Elenco: ${me.players.length}/24.</p><div class="card">${S.market.map((p,i)=>`<div class="row"><span><span class="pos">${p.pos}</span>${p.n} <span class="st">${p.s}</span></span><button class="sm" onclick="buy(${i})" ${S.cash<price(p)||me.players.length>=24?"disabled":""}>Comprar R$ ${price(p)} mil</button></div>`).join("")}</div>`}
+if(tab==="jogo")h+='<button class="alt" onclick="if(confirm(\'Abandonar este jogo e voltar à escolha de clube?\'))reset()">Novo jogo</button>';app.innerHTML=h}
+addEventListener("hashchange",()=>{const k=location.hash.slice(1);if(["jogo","tabela","elenco","mercado"].includes(k)){tab=k;render();scrollTo(0,0)}});
+load();loadB();render();
+</script>
+</body>
+</html>
